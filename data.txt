@@ -1,0 +1,30 @@
+hi|👋 Welcome to FoodExpress! How can I help you today?
+hello|Hello 😊 What would you like to order?
+hey|Hi there! Ready to order some delicious food?
+
+menu|📋 Our Menu: Pizza, Burger, Shawarma, Fries, Soft Drink
+show menu|📋 Our Menu: Pizza, Burger, Shawarma, Fries, Soft Drink
+food menu|📋 Our Menu: Pizza, Burger, Shawarma, Fries, Soft Drink
+
+delivery time|🚚 Delivery time is 30–45 minutes.
+how long delivery|🚚 Your order will arrive within 30–45 minutes.
+delivery charge|🚚 No delivery charges for now.
+
+payment|💵 We accept Cash on Delivery.
+payment method|💵 Cash on Delivery is available.
+online payment|💵 Currently only Cash on Delivery is supported.
+
+order status|📦 Your order is being prepared.
+track order|📦 Your order is on the way.
+cancel order|❌ Please contact support to cancel your order.
+
+yes|👍 Okay, please tell me the next item.
+no|🧾 Preparing your order summary.
+
+confirm|✅ Your order has been confirmed.
+place order|✅ Your order has been placed successfully.
+
+thank you|😊 You're welcome! Enjoy your meal.
+thanks|😊 Happy to help!
+bye|👋 Goodbye! Have a great day.
+goodbye|👋 Thanks for choosing FoodExpress!
