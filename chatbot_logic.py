@@ -19,34 +19,43 @@ if os.path.exists(menu_path):
     with open(menu_path, encoding="utf-8") as f:
         menu = json.load(f)
 
-# ---------------- Load Bots Data ----------------
-questions, answers = [], []
+# ---------------- Load Bots Data (SEPARATED) ----------------
+bots_data = {}
 
-bot_dirs = ["bots/food", "bots/faq", "bots/sales"]
+bot_dirs = {
+    "food": "bots/food/data.txt",
+    "faq": "bots/faq/data.txt",
+    "sales": "bots/sales/data.txt"
+}
 
-for bot in bot_dirs:
-    file_path = os.path.join(bot, "data.txt")
-    if not os.path.exists(file_path):
-        continue
+for bot_id, path in bot_dirs.items():
+    questions, answers = [], []
 
-    with open(file_path, encoding="utf-8-sig") as f:
-        for line in f:
-            line = line.strip()
-            if "|" not in line:
-                continue
-            q, a = line.split("|", 1)
-            questions.append(clean_text(q))
-            answers.append(a.strip())
+    if os.path.exists(path):
+        with open(path, encoding="utf-8-sig") as f:
+            for line in f:
+                line = line.strip()
+                if "|" not in line:
+                    continue
+                q, a = line.split("|", 1)
+                questions.append(clean_text(q))
+                answers.append(a.strip())
 
-# ---------------- NLP Setup (SAFE) ----------------
-vectorizer = None
-X = None
+    if questions:
+        vectorizer = TfidfVectorizer()
+        X = vectorizer.fit_transform(questions)
+    else:
+        vectorizer = None
+        X = None
 
-if questions:
-    vectorizer = TfidfVectorizer()
-    X = vectorizer.fit_transform(questions)
+    bots_data[bot_id] = {
+        "questions": questions,
+        "answers": answers,
+        "vectorizer": vectorizer,
+        "X": X
+    }
 
-# ---------------- Order State ----------------
+# ---------------- Order State (SESSION-SAFE SIMPLE VERSION) ----------------
 order = []
 current_item = None
 
@@ -81,7 +90,7 @@ def save_order_to_db(order_items):
     conn.close()
 
 # ---------------- Chatbot Logic ----------------
-def get_response(user_input):
+def get_response(user_input, bot_id="food"):
     global current_item, order
 
     user_input_clean = clean_text(user_input)
@@ -90,56 +99,60 @@ def get_response(user_input):
     if user_input_clean in ["hi", "hello", "hey", "assalamualaikum"]:
         return "Hello 👋 Welcome to FoodExpress! You can order food or ask a question."
 
-    # ---- Food Ordering ----
-    if current_item is None:
-        for item in menu:
-            if item in user_input_clean:
-                current_item = item
-                return f"{item.title()} costs Rs.{menu[item]}. How many would you like?"
+    # ---- Food Ordering (ONLY for food bot) ----
+    if bot_id == "food":
 
-    if current_item and user_input_clean.isdigit():
-        qty = int(user_input_clean)
-        price = menu[current_item]
-        total = qty * price
+        if current_item is None:
+            for item in menu:
+                if item in user_input_clean:
+                    current_item = item
+                    return f"{item.title()} costs Rs.{menu[item]}. How many would you like?"
 
-        order.append({
-            "item": current_item,
-            "qty": qty,
-            "price": price,
-            "total": total
-        })
+        if current_item and user_input_clean.isdigit():
+            qty = int(user_input_clean)
+            price = menu[current_item]
+            total = qty * price
 
-        current_item = None
-        return "✅ Item added! Would you like to order anything else? (yes / no)"
+            order.append({
+                "item": current_item,
+                "qty": qty,
+                "price": price,
+                "total": total
+            })
 
-    if user_input_clean in ["yes", "y"]:
-        return "Great 👍 Tell me the next item."
+            current_item = None
+            return "✅ Item added! Would you like to order anything else? (yes / no)"
 
-    if user_input_clean in ["no", "n"]:
-        if not order:
-            return "You haven't ordered anything yet."
-        summary = "🧾 Order Summary:\n"
-        total_price = 0
-        for o in order:
-            summary += f"- {o['qty']} {o['item'].title()} = Rs.{o['total']}\n"
-            total_price += o["total"]
-        summary += f"\n💰 Grand Total: Rs.{total_price}\nType 'confirm' to place order."
-        return summary
+        if user_input_clean in ["yes", "y"]:
+            return "Great 👍 Tell me the next item."
 
-    if "confirm" in user_input_clean:
-        if not order:
-            return "You have no order to confirm."
-        save_order_to_db(order)
-        order.clear()
-        return "🎉 Order confirmed! 🚚 Delivery in 30–45 minutes."
+        if user_input_clean in ["no", "n"]:
+            if not order:
+                return "You haven't ordered anything yet."
+            summary = "🧾 Order Summary:\n"
+            total_price = 0
+            for o in order:
+                summary += f"- {o['qty']} {o['item'].title()} = Rs.{o['total']}\n"
+                total_price += o["total"]
+            summary += f"\n💰 Grand Total: Rs.{total_price}\nType 'confirm' to place order."
+            return summary
 
-    # ---- NLP Fallback (SAFE) ----
-    if vectorizer and X is not None:
-        user_vec = vectorizer.transform([user_input_clean])
-        similarity = cosine_similarity(user_vec, X)
+        if "confirm" in user_input_clean:
+            if not order:
+                return "You have no order to confirm."
+            save_order_to_db(order)
+            order.clear()
+            return "🎉 Order confirmed! 🚚 Delivery in 30–45 minutes."
+
+    # ---- NLP Fallback (BOT-SPECIFIC) ----
+    bot = bots_data.get(bot_id)
+
+    if bot and bot["vectorizer"] and bot["X"] is not None:
+        user_vec = bot["vectorizer"].transform([user_input_clean])
+        similarity = cosine_similarity(user_vec, bot["X"])
         idx = similarity.argmax()
 
         if similarity[0][idx] > 0.3:
-            return answers[idx]
+            return bot["answers"][idx]
 
     return "Sorry, I didn’t understand that. You can order food or ask a question."
