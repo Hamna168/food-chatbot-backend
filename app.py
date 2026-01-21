@@ -5,32 +5,21 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
-init_db()  # Initialize SQLite DB
+init_db()
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     reply = ""
+    bot_id = request.args.get("bot", "food")  # Dynamic bot
     if request.method == "POST":
         user_message = request.form.get("message", "")
-        reply = get_response(user_message)
+        reply = get_response(user_message, bot_id=bot_id)
     return render_template("index.html", reply=reply)
 
 @app.route("/chat", methods=["POST"])
 def chat_api():
-    """
-    Expects JSON:
-    {
-        "message": "user message here"
-    }
-    Returns JSON:
-    {
-        "reply": "chatbot response here"
-    }
-    """
     data = request.get_json()
     user_message = data.get("message", "")
-    reply = get_response(user_message)
+    bot_id = data.get("bot", "food")  # dynamic bot
+    reply = get_response(user_message, bot_id=bot_id)
     return jsonify({"reply": reply})
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)

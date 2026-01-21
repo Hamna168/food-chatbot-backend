@@ -1,7 +1,33 @@
 do you have any discounts?|Yes! We often run promotions like "Buy 1 Get 1 Free" or 10% off on first orders.
+discounts|🎉 Check out our current promotions and special offers!
+promotions|🎉 We have exciting deals running this month. Use code SAVE10 for 10% off!
+offers|💰 Limited time offers available on selected items!
+
 are there combo deals?|Yes, check our menu for combo meals and family packs.
+combo deals|🍔 Our combo meals offer great value for money!
+family packs|👨‍👩‍👧‍👦 Perfect for families! Choose from our family packages.
+combo meals|🎁 Mix and match combos at special prices!
+
 can i use multiple coupons?|Only one coupon can be applied per order.
+multiple coupons|⚠️ Only one coupon per order is allowed.
+coupon limit|📌 Each order can have only 1 active coupon.
+
 do you offer loyalty points?|Yes, you earn points for every order that can be redeemed later.
+loyalty points|⭐ Earn points with every purchase and redeem them!
+reward points|🏆 Accumulate points and get exclusive rewards!
+membership|💎 Join our loyalty program for special benefits!
+
 are gift cards available?|Yes, we have gift cards ranging from Rs.500 to Rs.5000.
+gift cards|🎀 Gift cards available: Rs.500, Rs.1000, Rs.2000, Rs.5000
+gift vouchers|🎁 Perfect gift option for food lovers!
+e-vouchers|📱 Digital gift vouchers available instantly!
+
 do you offer corporate orders?|Yes, we accept bulk and corporate orders with prior arrangement.
+corporate orders|🏢 Bulk orders welcome! Contact us for corporate packages.
+bulk orders|📦 Special pricing for bulk and corporate orders!
+group orders|👥 Plan a group meal? We have special rates!
+
 is there a referral program?|Yes, refer a friend and both of you get discounts on your next order.
+referral program|🤝 Refer friends and earn discounts!
+refer friend|👫 Get rewarded for referring! Discounts for you and your friend!
+invite friends|📢 Share and earn! Invite friends for mutual benefits!

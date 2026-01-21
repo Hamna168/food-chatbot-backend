@@ -1,8 +1,39 @@
-what are your working hours?|Our working hours are 10 AM to 10 PM every day.
-do you deliver on weekends?|Yes, we deliver on Saturdays and Sundays as well.
-how can i track my order?|You can track your order using the tracking link sent in your confirmation email.
-what is your refund policy?|We offer a full refund if the order is cancelled within 15 minutes of placing it.
-can i change my order after placing it?|Yes, but only within 10 minutes of placing the order.
-do you have vegetarian options?|Yes, we have a variety of vegetarian dishes on our menu.
-is online payment safe?|Absolutely! We use secure payment gateways for all transactions.
-do you have contactless delivery?|Yes, we offer contactless delivery for all orders.
+what are your working hours?|⏰ Our working hours are 10 AM to 10 PM every day.
+operating hours|⏰ We're open from 10 AM to 10 PM daily.
+when are you open?|⏰ Open daily from 10:00 AM to 10:00 PM.
+store hours|⏰ Monday to Sunday: 10 AM - 10 PM.
+
+do you deliver on weekends?|✅ Yes, we deliver on Saturdays and Sundays as well.
+weekend delivery|✅ Full service available on weekends!
+saturday delivery|✅ We deliver on Saturdays without any issues.
+sunday delivery|✅ Sunday delivery is available!
+
+how can i track my order?|📍 You can track your order using the tracking link sent in your confirmation email.
+track my order|📍 Use the tracking link in your confirmation email.
+order tracking|📍 Real-time tracking available in your app!
+where is my order?|📍 Check the tracking link sent to your email or phone.
+
+what is your refund policy?|💰 We offer a full refund if the order is cancelled within 15 minutes of placing it.
+refund policy|💰 Full refund available if cancelled within 15 minutes.
+money back|💰 Refunds processed within 3-5 business days.
+cancellation refund|💰 Cancel within 15 minutes for a full refund!
+
+can i change my order after placing it?|✏️ Yes, but only within 10 minutes of placing the order.
+modify order|✏️ You can edit your order within 10 minutes.
+change order|✏️ Order modifications allowed within 10 minutes!
+edit order|✏️ Make changes to your order quickly!
+
+do you have vegetarian options?|🥗 Yes, we have a variety of vegetarian dishes on our menu.
+vegetarian food|🥗 Wide range of vegetarian options available!
+vegan options|🌱 We offer vegan-friendly meals too!
+non-vegetarian|🍗 Full selection of non-veg items as well!
+
+is online payment safe?|🔒 Absolutely! We use secure payment gateways for all transactions.
+payment security|🔒 Your data is encrypted and secure.
+secure payment|🔒 Bank-level security for all payments.
+payment safety|🔒 SSL encrypted and PCI compliant!
+
+do you have contactless delivery?|🚪 Yes, we offer contactless delivery for all orders.
+contactless order|🚪 Safe contactless delivery available!
+safe delivery|🚪 Follow health protocols with contactless delivery.
+no contact delivery|🚪 Leave at door option available!
