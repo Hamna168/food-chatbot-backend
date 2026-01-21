@@ -1,0 +1,8 @@
+what are your working hours?|Our working hours are 10 AM to 10 PM every day.
+do you deliver on weekends?|Yes, we deliver on Saturdays and Sundays as well.
+how can i track my order?|You can track your order using the tracking link sent in your confirmation email.
+what is your refund policy?|We offer a full refund if the order is cancelled within 15 minutes of placing it.
+can i change my order after placing it?|Yes, but only within 10 minutes of placing the order.
+do you have vegetarian options?|Yes, we have a variety of vegetarian dishes on our menu.
+is online payment safe?|Absolutely! We use secure payment gateways for all transactions.
+do you have contactless delivery?|Yes, we offer contactless delivery for all orders.

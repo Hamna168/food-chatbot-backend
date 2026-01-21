@@ -1,0 +1,7 @@
+do you have any discounts?|Yes! We often run promotions like "Buy 1 Get 1 Free" or 10% off on first orders.
+are there combo deals?|Yes, check our menu for combo meals and family packs.
+can i use multiple coupons?|Only one coupon can be applied per order.
+do you offer loyalty points?|Yes, you earn points for every order that can be redeemed later.
+are gift cards available?|Yes, we have gift cards ranging from Rs.500 to Rs.5000.
+do you offer corporate orders?|Yes, we accept bulk and corporate orders with prior arrangement.
+is there a referral program?|Yes, refer a friend and both of you get discounts on your next order.

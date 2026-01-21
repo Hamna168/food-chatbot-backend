@@ -1,0 +1,12 @@
+{
+  "burger": 250,
+  "pizza": 600,
+  "sandwich": 150,
+  "pasta": 450,
+  "samosa": 50,
+  "coke": 60,
+  "pepsi": 60,
+  "water": 20,
+  "ice cream": 120,
+  "cake": 350
+}
