@@ -1,12 +1,35 @@
 {
-  "burger": 250,
-  "pizza": 600,
-  "sandwich": 150,
-  "pasta": 450,
-  "samosa": 50,
-  "coke": 60,
-  "pepsi": 60,
-  "water": 20,
-  "ice cream": 120,
-  "cake": 350
+  "categories": {
+    "burgers": {
+      "zinger burger": 350,
+      "classic chicken burger": 300,
+      "beef cheese burger": 420
+    },
+    "pizzas": {
+      "margherita pizza": 950,
+      "pepperoni pizza": 1250,
+      "bbq chicken pizza": 1200
+    },
+    "korean": {
+      "korean fried chicken": 850,
+      "ramen noodles": 700,
+      "bibimbap": 900
+    },
+    "paris_cafe": {
+      "croissant": 280,
+      "chocolate croissant": 320,
+      "macaron box": 750
+    },
+    "drinks": {
+      "espresso": 220,
+      "cappuccino": 300,
+      "latte": 320,
+      "matcha latte": 380
+    },
+    "desserts": {
+      "cheesecake": 450,
+      "chocolate lava cake": 500,
+      "ice cream scoop": 180
+    }
+  }
 }

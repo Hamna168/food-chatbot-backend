@@ -6,20 +6,61 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
 
-# ---------------- Utility ----------------
-def clean_text(text):
+# =====================================================
+# TEXT NORMALIZATION (grammar + casual typing tolerant)
+# =====================================================
+def normalize_text(text):
     text = text.lower()
     text = re.sub(r'[^\w\s]', '', text)
+
+    replacements = {
+        "deliver": "delivery",
+        "charges": "charge",
+        "fees": "charge",
+        "cost": "charge",
+        "burgers": "burger",
+        "pizzas": "pizza",
+        "availble": "available",
+        "hav": "have"
+    }
+
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+
     return text.strip()
 
-# ---------------- Load Menu ----------------
+# =====================================================
+# INTENT DETECTION
+# =====================================================
+QUESTION_KEYWORDS = [
+    "is there", "do you have", "available",
+    "menu", "what", "how much", "price",
+    "delivery", "charge", "time"
+]
+
+def is_question(text):
+    return any(q in text for q in QUESTION_KEYWORDS)
+
+# =====================================================
+# LOAD MENU (CATEGORY AWARE)
+# =====================================================
 menu = {}
 menu_path = "bots/food/menu.json"
+
 if os.path.exists(menu_path):
     with open(menu_path, encoding="utf-8") as f:
         menu = json.load(f)
 
-# ---------------- Load Bots Data (SEPARATED) ----------------
+def find_menu_item(text):
+    for category in menu.get("categories", {}).values():
+        for item, price in category.items():
+            if item in text:
+                return item, price
+    return None, None
+
+# =====================================================
+# LOAD BOT DATA (FAQ / SALES / FOOD NLP)
+# =====================================================
 bots_data = {}
 
 bot_dirs = {
@@ -38,7 +79,7 @@ for bot_id, path in bot_dirs.items():
                 if "|" not in line:
                     continue
                 q, a = line.split("|", 1)
-                questions.append(clean_text(q))
+                questions.append(normalize_text(q))
                 answers.append(a.strip())
 
     if questions:
@@ -49,20 +90,24 @@ for bot_id, path in bot_dirs.items():
         X = None
 
     bots_data[bot_id] = {
-        "questions": questions,
         "answers": answers,
         "vectorizer": vectorizer,
         "X": X
     }
 
-# ---------------- Order State (SESSION-SAFE SIMPLE VERSION) ----------------
+# =====================================================
+# ORDER STATE (simple single-user version)
+# =====================================================
 order = []
 current_item = None
 
-# ---------------- Database ----------------
+# =====================================================
+# DATABASE
+# =====================================================
 def save_order_to_db(order_items):
     conn = sqlite3.connect("orders.db")
     cursor = conn.cursor()
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,28 +134,44 @@ def save_order_to_db(order_items):
     conn.commit()
     conn.close()
 
-# ---------------- Chatbot Logic ----------------
+# =====================================================
+# MAIN CHATBOT LOGIC
+# =====================================================
 def get_response(user_input, bot_id="food"):
     global current_item, order
 
-    user_input_clean = clean_text(user_input)
+    text = normalize_text(user_input)
 
-    # ---- Greetings ----
-    if user_input_clean in ["hi", "hello", "hey", "assalamualaikum"]:
-        return "Hello 👋 Welcome to FoodExpress! You can order food or ask a question."
+    # ---------------- GREETINGS ----------------
+    if text in ["hi", "hello", "hey", "assalamualaikum"]:
+        return "👋 Welcome to FoodExpress! You can ask about the menu or place an order."
 
-    # ---- Food Ordering (ONLY for food bot) ----
+    # ---------------- DELIVERY INFO ----------------
+    if "delivery charge" in text:
+        return "🚚 Good news! There are **no delivery charges**."
+    if "delivery time" in text or "how long" in text:
+        return "⏱️ Delivery time is **30–45 minutes**."
+
+    # ---------------- FOOD BOT LOGIC ----------------
     if bot_id == "food":
 
-        if current_item is None:
-            for item in menu:
-                if item in user_input_clean:
-                    current_item = item
-                    return f"{item.title()} costs Rs.{menu[item]}. How many would you like?"
+        item, price = find_menu_item(text)
 
-        if current_item and user_input_clean.isdigit():
-            qty = int(user_input_clean)
-            price = menu[current_item]
+        # ---- MENU QUESTIONS ----
+        if is_question(text):
+            if item:
+                return f"✅ Yes, **{item.title()}** is available for Rs.{price}."
+            else:
+                return "❌ Sorry, that item is not available in our menu."
+
+        # ---- ORDERING FLOW ----
+        if item and current_item is None:
+            current_item = item
+            return f"{item.title()} costs Rs.{price}. How many would you like?"
+
+        if current_item and text.isdigit():
+            qty = int(text)
+            _, price = find_menu_item(current_item)
             total = qty * price
 
             order.append({
@@ -121,38 +182,28 @@ def get_response(user_input, bot_id="food"):
             })
 
             current_item = None
-            return "✅ Item added! Would you like to order anything else? (yes / no)"
+            return {
+                "reply": "✅ Item added! Would you like to order anything else?",
+                "showConfirm": True
+            }
 
-        if user_input_clean in ["yes", "y"]:
-            return "Great 👍 Tell me the next item."
-
-        if user_input_clean in ["no", "n"]:
+        if "confirm" in text:
             if not order:
-                return "You haven't ordered anything yet."
-            summary = "🧾 Order Summary:\n"
-            total_price = 0
-            for o in order:
-                summary += f"- {o['qty']} {o['item'].title()} = Rs.{o['total']}\n"
-                total_price += o["total"]
-            summary += f"\n💰 Grand Total: Rs.{total_price}\nType 'confirm' to place order."
-            return summary
+                return "⚠️ You haven’t ordered anything yet."
 
-        if "confirm" in user_input_clean:
-            if not order:
-                return "You have no order to confirm."
             save_order_to_db(order)
             order.clear()
-            return "🎉 Order confirmed! 🚚 Delivery in 30–45 minutes."
+            return "🎉 Order confirmed! 🚚 Your food will arrive shortly."
 
-    # ---- NLP Fallback (BOT-SPECIFIC) ----
+    # ---------------- NLP FALLBACK ----------------
     bot = bots_data.get(bot_id)
 
     if bot and bot["vectorizer"] and bot["X"] is not None:
-        user_vec = bot["vectorizer"].transform([user_input_clean])
+        user_vec = bot["vectorizer"].transform([text])
         similarity = cosine_similarity(user_vec, bot["X"])
         idx = similarity.argmax()
 
-        if similarity[0][idx] > 0.3:
+        if similarity[0][idx] > 0.35:
             return bot["answers"][idx]
 
-    return "Sorry, I didn’t understand that. You can order food or ask a question."
+    return "🤔 I didn’t understand that. You can ask about menu, delivery, or place an order."
