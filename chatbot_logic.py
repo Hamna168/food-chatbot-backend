@@ -1,91 +1,85 @@
 import os
 import json
 import sqlite3
-from datetime import datetime
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import re
+from datetime import datetime
 
-# ---------------- Utility ----------------
-def normalize_text(text):
-    text = text.lower()
-    text = re.sub(r'[^\w\s]', '', text)
+# =========================
+# LOAD MENU
+# =========================
+MENU_PATH = "bots/food/menu.json"
 
-    synonyms = {
-        "salam": "hello",
-        "assalam": "hello",
-        "aoa": "hello",
-        "hey": "hello",
-        "menu": "menu",
-        "items": "menu",
-        "list": "menu",
-        "show menu": "menu",
-    }
+if os.path.exists(MENU_PATH):
+    with open(MENU_PATH, encoding="utf-8") as f:
+        MENU = json.load(f)
+else:
+    MENU = {}
 
-    for k, v in synonyms.items():
-        if k in text:
-            text = v
+MENU_ITEMS = {k.lower(): v for k, v in MENU.items()}
 
-    return text.strip()
-
-# ---------------- Load Menu ----------------
-menu = {}
-menu_path = "bots/food/menu.json"
-if os.path.exists(menu_path):
-    with open(menu_path, encoding="utf-8") as f:
-        menu = json.load(f)
-
-# ---------------- Load Bots Data ----------------
-bots_data = {}
-bot_dirs = {
-    "food": "bots/food/data.txt",
-    "faq": "bots/faq/data.txt",
-    "sales": "bots/sales/data.txt"
+# =========================
+# SESSION MEMORY (simple)
+# =========================
+SESSION = {
+    "order": [],
+    "awaiting_quantity": False,
+    "last_items": []
 }
 
-for bot_id, path in bot_dirs.items():
-    questions, answers = [], []
+# =========================
+# NORMALIZATION
+# =========================
+def normalize(text):
+    text = text.lower()
+    text = re.sub(r"[^\w\s]", "", text)
+    return text.strip()
 
-    if os.path.exists(path):
-        with open(path, encoding="utf-8-sig") as f:
-            for line in f:
-                if "|" not in line:
-                    continue
-                q, a = line.split("|", 1)
-                questions.append(normalize_text(q))
-                answers.append(a.strip())
+# =========================
+# INTENT DETECTION
+# =========================
+def is_greeting(text):
+    return any(w in text for w in ["hi", "hello", "salam", "assalam", "aoa", "hey"])
 
-    vectorizer = TfidfVectorizer()
-    X = vectorizer.fit_transform(questions) if questions else None
+def is_menu_request(text):
+    return any(w in text for w in ["menu", "show", "items", "list"])
 
-    bots_data[bot_id] = {
-        "vectorizer": vectorizer if questions else None,
-        "X": X,
-        "answers": answers
-    }
+def is_confirmation(text):
+    return any(w in text for w in ["confirm", "place order", "yes confirm"])
 
-# ---------------- Order State ----------------
-order = []
-current_item = None
+def is_negative(text):
+    return text in ["no", "n"]
 
-# ---------------- Database ----------------
-def save_order_to_db(order_items):
+# =========================
+# PARSE ORDER ITEMS
+# =========================
+def extract_items(text):
+    found = []
+    for item in MENU_ITEMS:
+        if item in text:
+            qty_match = re.search(rf"(\d+)\s*{item}", text)
+            qty = int(qty_match.group(1)) if qty_match else 1
+            found.append((item, qty))
+    return found
+
+# =========================
+# DATABASE
+# =========================
+def save_order(order):
     conn = sqlite3.connect("orders.db")
-    cursor = conn.cursor()
-    cursor.execute("""
+    cur = conn.cursor()
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             item TEXT,
             quantity INTEGER,
-            price REAL,
-            total REAL,
-            order_time TEXT
+            price INTEGER,
+            total INTEGER,
+            time TEXT
         )
     """)
-    for o in order_items:
-        cursor.execute("""
-            INSERT INTO orders (item, quantity, price, total, order_time)
-            VALUES (?, ?, ?, ?, ?)
+    for o in order:
+        cur.execute("""
+            INSERT INTO orders VALUES (NULL,?,?,?,?,?)
         """, (
             o["item"],
             o["qty"],
@@ -96,84 +90,66 @@ def save_order_to_db(order_items):
     conn.commit()
     conn.close()
 
-# ---------------- Chatbot Logic ----------------
-def get_response(user_input, bot_id="food"):
-    global current_item, order
+# =========================
+# MENU DISPLAY
+# =========================
+def show_menu():
+    reply = "🍽️ *FoodExpress Café Menu*\n\n"
+    for item, price in MENU_ITEMS.items():
+        reply += f"• {item.title()} — Rs. {price}\n"
+    reply += "\n🛒 You can order like:\n`2 burgers and 1 fries`"
+    return reply
 
-    text = normalize_text(user_input)
+# =========================
+# MAIN CHAT LOGIC
+# =========================
+def get_response(user_input, bot_id="food"):
+    text = normalize(user_input)
 
     # ---- GREETING ----
-    if text == "hello":
-        return "Hello 👋 Welcome to FoodExpress! Type *menu* to see our items."
+    if is_greeting(text):
+        return "👋 Salam! Welcome to *FoodExpress Café*.\nType *menu* to see our items 🍔☕"
 
-    # ---- MENU REQUEST ----
-    if text == "menu":
-        if not menu:
-            return "Menu is currently unavailable 😔"
-        reply = "📋 *Our Menu*\n\n"
-        for item, price in menu.items():
-            reply += f"• {item.title()} – Rs.{price}\n"
-        reply += "\n👉 Type item name to order."
+    # ---- MENU ----
+    if is_menu_request(text):
+        return show_menu()
+
+    # ---- CONFIRM ORDER ----
+    if is_confirmation(text):
+        if not SESSION["order"]:
+            return "🛒 You haven’t ordered anything yet."
+        save_order(SESSION["order"])
+        SESSION["order"].clear()
+        return "✅ *Order Confirmed!*\n🚚 Delivery in 30–45 minutes.\nThank you 💜"
+
+    # ---- ORDER PARSING ----
+    items = extract_items(text)
+
+    if items:
+        reply = ""
+        for item, qty in items:
+            price = MENU_ITEMS[item]
+            total = price * qty
+            SESSION["order"].append({
+                "item": item,
+                "qty": qty,
+                "price": price,
+                "total": total
+            })
+            reply += f"✅ {qty} × {item.title()} added (Rs. {total})\n"
+
+        reply += "\nWould you like to order anything else? (yes / confirm)"
         return reply
 
-    # ---- FOOD ORDERING ----
-    if bot_id == "food":
+    # ---- ITEM NOT FOUND ----
+    if any(w in text for w in ["burger", "pizza", "zinger", "icecream"]):
+        return "❌ Sorry, that item is not available in our menu.\nType *menu* to see available items."
 
-        # Selecting item
-        if current_item is None:
-            for item in menu:
-                if item in text:
-                    current_item = item
-                    return f"{item.title()} costs Rs.{menu[item]}. How many would you like?"
+    # ---- DELIVERY INFO ----
+    if "delivery" in text:
+        if "charge" in text:
+            return "🚚 No delivery charges 😊"
+        return "⏱️ Delivery time is 30–45 minutes."
 
-        # Quantity
-        if current_item:
-            if text.isdigit():
-                qty = int(text)
-                price = menu[current_item]
-                total = qty * price
-
-                order.append({
-                    "item": current_item,
-                    "qty": qty,
-                    "price": price,
-                    "total": total
-                })
-
-                current_item = None
-                return "✅ Item added! Would you like to order anything else? (yes / no)"
-            else:
-                return "Please enter quantity as a number (e.g. 1, 2, 3)."
-
-        # More items
-        if text in ["yes", "y"]:
-            return "Great 👍 Tell me the next item."
-
-        if text in ["no", "n"]:
-            if not order:
-                return "You haven’t ordered anything yet."
-            summary = "🧾 *Order Summary*\n"
-            total_price = 0
-            for o in order:
-                summary += f"- {o['qty']} {o['item'].title()} = Rs.{o['total']}\n"
-                total_price += o["total"]
-            summary += f"\n💰 Total: Rs.{total_price}\nPress *Confirm Order* to proceed."
-            return summary
-
-        if "confirm" in text:
-            if not order:
-                return "There is no order to confirm."
-            save_order_to_db(order)
-            order.clear()
-            return "🎉 Order confirmed! 🚚 Delivery in 30–45 minutes."
-
-    # ---- NLP FALLBACK ----
-    bot = bots_data.get(bot_id)
-    if bot and bot["vectorizer"] and bot["X"] is not None:
-        vec = bot["vectorizer"].transform([text])
-        sim = cosine_similarity(vec, bot["X"])
-        idx = sim.argmax()
-        if sim[0][idx] > 0.3:
-            return bot["answers"][idx]
-
-    return "Sorry 😔 I didn’t understand that. Type *menu* to see items."
+    # ---- FALLBACK ----
+    return "🤔 I didn’t understand that.\nTry typing *menu* or place an order like:\n`1 burger and 1 fries`"
