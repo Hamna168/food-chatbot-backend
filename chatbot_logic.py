@@ -3,6 +3,7 @@ import json
 import sqlite3
 import re
 from datetime import datetime
+from flask import session
 
 # =========================
 # LOAD MENU
@@ -15,16 +16,21 @@ if os.path.exists(MENU_PATH):
 else:
     MENU = {}
 
-MENU_ITEMS = {k.lower(): v for k, v in MENU.items()}
+MENU_ITEMS = {}
+if "categories" in MENU:
+    for category, items in MENU["categories"].items():
+        for item, price in items.items():
+            MENU_ITEMS[item.lower()] = price
+else:
+    MENU_ITEMS = {k.lower(): v for k, v in MENU.items()}
 
 # =========================
-# SESSION MEMORY (simple)
+# SESSION MEMORY (per-user)
 # =========================
-SESSION = {
-    "order": [],
-    "awaiting_quantity": False,
-    "last_items": []
-}
+def get_user_session():
+    if 'order' not in session:
+        session['order'] = []
+    return session
 
 # =========================
 # NORMALIZATION
@@ -64,23 +70,25 @@ def extract_items(text):
 # =========================
 # DATABASE
 # =========================
-def save_order(order):
+def save_order(order, user_id):
     conn = sqlite3.connect("orders.db")
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
             item TEXT,
             quantity INTEGER,
             price INTEGER,
             total INTEGER,
-            time TEXT
+            order_time TEXT
         )
     """)
     for o in order:
         cur.execute("""
-            INSERT INTO orders VALUES (NULL,?,?,?,?,?)
+            INSERT INTO orders VALUES (NULL,?,?,?,?,?,?)
         """, (
+            user_id,
             o["item"],
             o["qty"],
             o["price"],
@@ -95,16 +103,25 @@ def save_order(order):
 # =========================
 def show_menu():
     reply = "🍽️ *FoodExpress Café Menu*\n\n"
-    for item, price in MENU_ITEMS.items():
-        reply += f"• {item.title()} — Rs. {price}\n"
-    reply += "\n🛒 You can order like:\n`2 burgers and 1 fries`"
+    if "categories" in MENU:
+        for category, items in MENU["categories"].items():
+            reply += f"**{category.replace('_', ' ').title()}**\n"
+            for item, price in items.items():
+                reply += f"• {item.title()} — Rs. {price}\n"
+            reply += "\n"
+    else:
+        for item, price in MENU_ITEMS.items():
+            reply += f"• {item.title()} — Rs. {price}\n"
+    reply += "🛒 You can order like:\n`2 zinger burgers and 1 latte`"
     return reply
 
 # =========================
 # MAIN CHAT LOGIC
 # =========================
 def get_response(user_input, bot_id="food"):
+    user_session = get_user_session()
     text = normalize(user_input)
+    user_id = session.get('user_id', 'anonymous')  # Simple user ID, can be improved
 
     # ---- GREETING ----
     if is_greeting(text):
@@ -116,10 +133,10 @@ def get_response(user_input, bot_id="food"):
 
     # ---- CONFIRM ORDER ----
     if is_confirmation(text):
-        if not SESSION["order"]:
+        if not user_session["order"]:
             return "🛒 You haven’t ordered anything yet."
-        save_order(SESSION["order"])
-        SESSION["order"].clear()
+        save_order(user_session["order"], user_id)
+        user_session["order"].clear()
         return "✅ *Order Confirmed!*\n🚚 Delivery in 30–45 minutes.\nThank you 💜"
 
     # ---- ORDER PARSING ----
@@ -130,7 +147,7 @@ def get_response(user_input, bot_id="food"):
         for item, qty in items:
             price = MENU_ITEMS[item]
             total = price * qty
-            SESSION["order"].append({
+            user_session["order"].append({
                 "item": item,
                 "qty": qty,
                 "price": price,

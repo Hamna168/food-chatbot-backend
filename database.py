@@ -7,6 +7,7 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
             item TEXT,
             quantity INTEGER,
             price INTEGER,

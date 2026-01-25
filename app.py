@@ -1,15 +1,27 @@
-from flask import Flask, request, jsonify, render_template
+import logging
+from flask import Flask, request, jsonify, render_template, session
 from chatbot_logic import get_response
 from database import init_db
 from flask_cors import CORS
+import uuid
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key_here'  # Change this to a secure key
 
 # Enable CORS for all routes (Flutter, GitHub Pages)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Initialize database
 init_db()
+
+@app.before_request
+def set_user_id():
+    if 'user_id' not in session:
+        session['user_id'] = str(uuid.uuid4())
 
 # -------------------------------------------------
 # Web UI (for browser testing)
@@ -36,6 +48,8 @@ def chat_api():
         user_message = data.get("message", "").strip()
         bot_id = data.get("bot", "food")
 
+        logger.info(f"Chat request: user_id={session.get('user_id')}, message='{user_message}', bot={bot_id}")
+
         if not user_message:
             return jsonify({"reply": "Please type a message 🙂"}), 200
 
@@ -43,8 +57,7 @@ def chat_api():
         return jsonify({"reply": reply}), 200
 
     except Exception as e:
-        # This prevents Render from crashing with 500
-        print("Chat API Error:", str(e))
+        logger.error(f"Chat API Error: {str(e)}")
         return jsonify({
             "reply": "Sorry, something went wrong on the server."
         }), 200
