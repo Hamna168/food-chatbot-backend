@@ -4,9 +4,15 @@ from chatbot_logic import get_response
 from database import init_db
 from flask_cors import CORS
 import uuid
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # Change this to a secure key
+
+# 2. Grab the SECRET_KEY from the environment
+app.secret_key = os.getenv('SECRET_KEY')
 
 # Enable CORS for all routes (Flutter, GitHub Pages)
 CORS(app, resources={r"/*": {"origins": "*"}})

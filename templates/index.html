@@ -1,22 +1,100 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>Tawakkul Cafe</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tawakkul Cafe Chatbot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .bot-response {
+            background-color: #e8f0fe;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            line-height: 1.6;
+            /* This makes the menu readable */
+            white-space: pre-wrap;
+            /* This preserves the \n line breaks! */
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #219150;
+        }
+
+        .menu-item {
+            color: #27ae60;
+            font-weight: bold;
+        }
+    </style>
 </head>
+
 <body>
-    <h1>Welcome to Tawakkul Cafe!</h1>
-    <img src="Tawakul cafe.png" alt="Tawakkul Cafe Logo" width="200">
-    <url>
-        <li><a href="/menu">View Menu</a></li>
-        <li><a href="/order">Place an Order</a></li>
-    </url>
-    <h2>🍔 Tawakkul Delivery Chatbot</h2>
 
-    <form method="POST">
-        <input type="text" name="message" placeholder="Type your message" required>
-        <button type="submit">Send</button>
-    </form>
+    <div class="chat-container">
+        <h1>🌙 Tawakkul Cafe</h1>
+        <p style="text-align: center; color: #7f8c8d;">Your favorite delivery partner</p>
 
-    <p><strong>Bot:</strong> {{ reply }}</p>
+        {% if reply %}
+        <div class="bot-response">
+            <strong>Bot:</strong><br>
+            {{ reply | safe }}
+        </div>
+        {% endif %}
+
+        <form method="POST">
+            <input type="text" name="message" placeholder="Ask for menu or order food..." required autofocus>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
 </body>
+
 </html>
