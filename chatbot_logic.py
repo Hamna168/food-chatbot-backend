@@ -14,7 +14,7 @@ if os.path.exists(MENU_PATH):
     with open(MENU_PATH, encoding="utf-8") as f:
         MENU = json.load(f)
 else:
-    MENU = {}
+    print("Menu file not found.")
 
 MENU_ITEMS = {}
 if "categories" in MENU:
@@ -44,27 +44,44 @@ def normalize(text):
 # INTENT DETECTION
 # =========================
 def is_greeting(text):
-    return any(w in text for w in ["hi", "hello", "salam", "assalam", "aoa", "hey"])
+    return any(w in text for w in ["hi", "hello", "salam", "assalamualaikum", "aoa", "hey"])
 
 def is_menu_request(text):
-    return any(w in text for w in ["menu", "show", "items", "list"])
+    return any(w in text for w in ["menu", "what do you have"])
 
 def is_confirmation(text):
-    return any(w in text for w in ["confirm", "place order", "yes confirm"])
+    return any(w in text for w in ["confirm"])
 
 def is_negative(text):
-    return text in ["no", "n"]
+    return text in ["no", "nah", "nope"]
 
 # =========================
 # PARSE ORDER ITEMS
 # =========================
-def extract_items(text):
+from spacy.matcher import PhraseMatcher
+
+matcher = PhraseMatcher(nlp.vocab)
+# Create patterns from your MENU_ITEMS keys
+patterns = [nlp.make_doc(text) for text in MENU_ITEMS.keys()]
+matcher.add("MENU_LIST", patterns)
+
+def extract_complex_order(text):
+    doc = nlp(text.lower())
+    matches = matcher(doc)
     found = []
-    for item in MENU_ITEMS:
-        if item in text:
-            qty_match = re.search(rf"(\d+)\s*{item}", text)
-            qty = int(qty_match.group(1)) if qty_match else 1
-            found.append((item, qty))
+
+    for match_id, start, end in matches:
+        span = doc[start:end] # This is the food item (e.g., "zinger burger")
+        qty = 1
+        
+        # Look at the word immediately before the food item
+        if start > 0:
+            previous_word = doc[start - 1]
+            if previous_word.pos_ == "NUM":
+                # Convert "two" to 2 or use .text if it's "2"
+                qty = int(previous_word.text) 
+                
+        found.append((span.text, qty))
     return found
 
 # =========================
@@ -140,12 +157,12 @@ def get_response(user_input, bot_id="food"):
         return "✅ *Order Confirmed!*\n🚚 Delivery in 30–45 minutes.\nThank you 💜"
 
     # ---- ORDER PARSING ----
-    items = extract_items(text)
+    items = extract_complex_order(text)
 
     if items:
         reply = ""
         for item, qty in items:
-            price = MENU_ITEMS[item]
+            price = MENU_ITEMS.get(item, 0)
             total = price * qty
             user_session["order"].append({
                 "item": item,
